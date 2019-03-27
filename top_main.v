@@ -366,7 +366,7 @@ assign input_U1_start = U1_start_tap[0] & ~U1_start_tap[2];
 
 wire U1_txdata_hold;
 wire U1_tx_buf_is_empty;
-assign  U1_tx_buf_is_empty = ~(U1_txdata_hold | uart_rx_rdy | (~tsr_is_empty));
+	assign  U1_tx_buf_is_empty = ~(U1_txdata_hold /*| uart_rx_rdy*/ | (~tsr_is_empty));
 
 Lab3_140L U1(
  .i_rst     (i_rst)                   , // reset signal
