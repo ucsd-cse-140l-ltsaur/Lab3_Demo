@@ -80,17 +80,17 @@ assign i_rst_test[7:0] = {is_uart_rx_b7_0, is_uart_rx_b6_0, is_uart_rx_b5_0, is_
 
 always @ (posedge clk_in) begin
     if (rst_count >= (clk_freq/2)) begin
-	     
-	    if(&i_rst_test) begin //letter is ESC 
-	       //generate reset pulse to U1
-	       rst_count <= 0;
-	    end
+         
+        if(&i_rst_test) begin //letter is ESC 
+           //generate reset pulse to U1
+           rst_count <= 0;
+        end
     end else begin                   
             rst_count <= rst_count + 1;
     end
-	
+    
 end
-	
+    
 assign i_rst = ~rst_count[19] ;
 
 // PLL instantiation
@@ -146,20 +146,20 @@ always @ (posedge CLKOS) count <= count + 1 ; //1.9MHz/16 = 1187500 3% error fro
 
 always @ (posedge CLKOP) begin  //38MHz
     if(i_rst) begin
-	    shift_reg2[19:0] <= 5'h00000;
-	end
-	else begin
+        shift_reg2[19:0] <= 5'h00000;
+    end
+    else begin
         shift_reg2[19:0] <= {shift_reg2[18:0], o_rx_data_ready} ; //38Mhz
-	end
+    end
 end
 
 always @ (posedge CLKOS) begin  //1.9MHz
     if(i_rst) begin
-	    shift_reg1[17:0] <= {2'b00, 4'h0000};
-	end
-	else begin
+        shift_reg1[17:0] <= {2'b00, 4'h0000};
+    end
+    else begin
         shift_reg1[17:0] <= {shift_reg1[16:0], rx_rdy} ; //1.9MHz
-    end		
+    end     
 end
 
 //implicity defined rx_rdy as 1 bit wire
@@ -181,17 +181,17 @@ wire l_uart_rx_rdy_sync_posedge = uart_rx_rdy_sync_tap[0] & ~uart_rx_rdy_sync_ta
 always @ (posedge clk_in)
 begin
     if(i_rst) begin
-	    uart_rx_rdy_sync_tap[1:0] <= 2'b00;
-		uart_rx_data[7:0] <= 2'h00;
-	end
-	else begin
-	    uart_rx_rdy_sync_tap[1:0] <= {uart_rx_rdy_sync_tap[0], uart_rx_rdy};
+        uart_rx_rdy_sync_tap[1:0] <= 2'b00;
+        uart_rx_data[7:0] <= 2'h00;
+    end
+    else begin
+        uart_rx_rdy_sync_tap[1:0] <= {uart_rx_rdy_sync_tap[0], uart_rx_rdy};
 
         if( l_uart_rx_rdy_sync_posedge) 
             uart_rx_data[7:0] <= {o_rx_data[7:6], o_rx_data[5], o_rx_data[4:0]} ; //flip bit5 to convert to uppter case
-		else
-		    uart_rx_data <= uart_rx_data;
-	end
+        else
+            uart_rx_data <= uart_rx_data;
+    end
 end
 
 
@@ -236,11 +236,11 @@ assign U1_p_test[7:0] = {is_uart_rx_b7_0 , is_uart_rx_b6_0 , is_uart_rx_b5_1, is
 
 assign U1_n_test[7:0] = {is_uart_rx_b7_0 , is_uart_rx_b6_0 , is_uart_rx_b5_1, is_uart_rx_b4_0,
                             is_uart_rx_b3_1 , is_uart_rx_b2_1 , is_uart_rx_b1_0, is_uart_rx_b0_1};
-					   					   
-assign U1_num_test[3:0] ={is_uart_rx_b7_0, is_uart_rx_b6_0 , is_uart_rx_b5_1, is_uart_rx_b4_1};		
+                                           
+assign U1_num_test[3:0] ={is_uart_rx_b7_0, is_uart_rx_b6_0 , is_uart_rx_b5_1, is_uart_rx_b4_1};     
 
 assign  U1_pluse_wire     = (&U1_p_test);
-assign 	U1_substrate_wire = (&U1_n_test);
+assign  U1_substrate_wire = (&U1_n_test);
 assign  U1_valid_num_wire = (&U1_num_test);
    
 //------------------------------------------------------------------------
@@ -248,64 +248,62 @@ assign  U1_valid_num_wire = (&U1_num_test);
 // logci is running at clk_in domain, uart_rx_data_rdy is running at 
 // CLKOS 1.9MHz from PLL.  resync this signal first
 reg [1:0] l_uart_rx_data_rdy_tap;
+wire uart_rx_data_rdy_sync_posedge = l_uart_rx_data_rdy_tap[0] & ~l_uart_rx_data_rdy_tap[1];
 
-	wire uart_rx_data_rdy_sync_posedge = l_uart_rx_data_rdy_tap[0] &  ~l_uart_rx_data_rdy_tap[1];
-
-always @ (posedge clk_in) 
-begin
+always @ (posedge clk_in) begin
     if(i_rst) begin
-	    l_uart_rx_data_rdy_tap[7:0] <= 2'h00;
+        l_uart_rx_data_rdy_tap[1:0] <= 2'b00;
         U1_input_count <= 2'b00;
         U1_start <= 1'b0;
-		ctrl_from_UartRx <= 1'b0;
+        ctrl_from_UartRx <= 1'b0;
         r1 <= 2'h00;
         r2 <= 2'h00;
-		U1_substrate <= 0;
+        U1_substrate <= 0;
     end
-	else begin
-	l_uart_rx_data_rdy_tap[1:0] <= {l_uart_rx_data_rdy_tap[0], uart_rx_data_rdy};
+    else begin
+        l_uart_rx_data_rdy_tap[1:0] <= {l_uart_rx_data_rdy_tap[0], uart_rx_data_rdy};
 
         if (uart_rx_data_rdy_sync_posedge) begin 
-	        if ( U1_input_count >= 2'b10) begin
-	            if ( U1_pluse_wire) begin // 3th letter is '+' or '-'
-				    U1_substrate <= 0;
-	                U1_start <= 1'b1;
-		        end else 
-			    if ( U1_substrate_wire) begin
-			        U1_substrate <= 1'b1;
-		            U1_start <= 1'b1;
-		        end 
-			    else begin
-			        U1_substrate <= 0;
-			    end		
+            if ( U1_input_count >= 2'b10) begin
+                if ( U1_pluse_wire) begin // 3th letter is '+' or '-'
+                    U1_substrate <= 0;
+                    U1_start <= 1'b1;
+                end else 
+                if ( U1_substrate_wire) begin
+                    U1_substrate <= 1'b1;
+                    U1_start <= 1'b1;
+                end 
+                else begin
+                    U1_substrate <= 0;
+                end     
                 ctrl_from_UartRx <= 0;
-	            U1_input_count <= 2'b00;
-	        end else 
-		    begin
-	            if(U1_valid_num_wire) begin
-	                if ( U1_input_count == 2'b00)
-	                    r1[7:0] <= uart_rx_data[7:0];
-	                else if ( U1_input_count == 2'b01)
-	                    r2[7:0] <= uart_rx_data[7:0];					 	
-		            U1_input_count <= U1_input_count + 1;
-				    ctrl_from_UartRx <= 0;
-		        end 
-			    else begin 
-			        ctrl_from_UartRx_char[7:0] <= uart_rx_data[7:0];
-				    ctrl_from_UartRx <= 1;
-		            U1_input_count <= 2'b00;
-			    end
-	            U1_start <= 0;
-		    end
-	    end
-		else begin
+                U1_input_count <= 2'b00;
+            end else 
+            begin
+                if(U1_valid_num_wire) begin
+                    if ( U1_input_count == 2'b00)
+                        r1[7:0] <= uart_rx_data[7:0];
+                    else if ( U1_input_count == 2'b01)
+                        r2[7:0] <= uart_rx_data[7:0];                       
+                    U1_input_count <= U1_input_count + 1;
+                    ctrl_from_UartRx <= 0;
+                end 
+                else begin 
+                    ctrl_from_UartRx_char[7:0] <= uart_rx_data[7:0];
+                    ctrl_from_UartRx <= 1;
+                    U1_input_count <= 2'b00;
+                end
+                U1_start <= 0;
+            end
+        end
+        else begin
             U1_input_count <= U1_input_count;
             U1_start <= U1_start;
-		    ctrl_from_UartRx <= ctrl_from_UartRx;
+            ctrl_from_UartRx <= ctrl_from_UartRx;
             r1 <= r1;
             r2 <= r2;
-		    U1_substrate <= U1_substrate;
-		end
+            U1_substrate <= U1_substrate;
+        end
     end
 end
 
@@ -351,9 +349,9 @@ reg [2:0] U1_start_tap;
 // generate start strob, sync to input clk
 always @ (posedge i_U1_clk)begin
     if(i_rst)
-	    U1_start_tap[2:0] <= 3'b000;
-	else 
-	    U1_start_tap[2:0] <= {U1_start_tap[1:0], U1_start};
+        U1_start_tap[2:0] <= 3'b000;
+    else 
+        U1_start_tap[2:0] <= {U1_start_tap[1:0], U1_start};
 end
 wire input_U1_start;
 assign input_U1_start = U1_start_tap[0] & ~U1_start_tap[2];
@@ -410,71 +408,71 @@ reg [1:0] uart_tx_bit_clk_posedge;
 
 
 reg [7:0] l_U1_o_data;
-	  
+      
 always @ (posedge CLKOP)  //38MHz
 begin
     if(i_rst) begin
-	    uart_tx_bit_clk_posedge <= 2'b00;
-		uart_tx_bit_delay_tap <= 1'h0;
-	    U1_data_rdy_tap[5:0] <= 6'b000000;
-	    U1_data_rdy      <= 1'b0;
-		U1_data_rdy_sync <= 1'b0;
-		U1_shift_reg2[19:0] <= 5'h00000;
-	end
-	else begin
-	    U1_shift_reg2[19:0] <= {U1_shift_reg2[18:0], U1_data_rdy_sync};
-		
-		//catching the rising edge of U1_o_rdy
-	    U1_data_rdy_tap[5:0] <= {U1_data_rdy_tap[4:0], l_U1_o_rdy};  
-		
-		if(U1_data_rdy_tap_tst)
-		    l_U1_o_data[7:0] <= U1_o_data[7:0];
-		else
-		    l_U1_o_data[7:0] <= l_U1_o_data[7:0];
-			
-		//catching uart tx block i_clk_in, which is a slow ck @ 1.9MHz/16
-	    uart_tx_bit_clk_posedge[1:0] <= {uart_tx_bit_clk_posedge[0], count[3]};
-	    
-		// latch in @ posedge of l_U1_o_rdy 
-		// and wait for current uart tx is finished
-		// ignore rising edge if preparing for tx one byte as no buffer at tx
-		if(U1_data_rdy_tap_tst & !U1_shift_tmp & !U1_data_rdy)  begin
-		    uart_tx_bit_delay_tap <= 1'h0;
-		    U1_data_rdy <= 1'b1;
-        end			
-		else if(U1_shift_tmp)  begin
-		    U1_data_rdy <= 1'b0;  //clear the status as only one bit is needed in the tap line
-		end		
-		else begin
-		    U1_data_rdy <= U1_data_rdy;
-		end
-	    
-		//set U1_data_rdy_sync after tx uart is idle
-		if(uart_rx_rdy | !tsr_is_empty) begin //wait for tx release and tx fifo empty 
-		    uart_tx_bit_delay_tap <= 1'h0;
-	        U1_data_rdy_sync <= 1'b0;
-	    end else
-		begin
-		    //wait until the previous tx is done + 2 bit cycles (3 i_clks posedge to uart_tx)
-		    if(U1_data_rdy) begin  
-			
-			    if((uart_tx_bit_clk_posedge[0] & !uart_tx_bit_clk_posedge[1])) 
-			        uart_tx_bit_delay_tap[3:0] <= {uart_tx_bit_delay_tap[2:0], 1'b1};
-				else
-				    uart_tx_bit_delay_tap <= uart_tx_bit_delay_tap;
-					
-                if(uart_tx_bit_delay_tap[3])						
-	                U1_data_rdy_sync <= 1'b1;
-				else
-				    U1_data_rdy_sync <= U1_data_rdy_sync;
-					
-			end 
-			else begin
-			    U1_data_rdy_sync <= 1'b0;
-				uart_tx_bit_delay_tap <= uart_tx_bit_delay_tap;
-			end
-		end
-	end
+        uart_tx_bit_clk_posedge <= 2'b00;
+        uart_tx_bit_delay_tap <= 1'h0;
+        U1_data_rdy_tap[5:0] <= 6'b000000;
+        U1_data_rdy      <= 1'b0;
+        U1_data_rdy_sync <= 1'b0;
+        U1_shift_reg2[19:0] <= 5'h00000;
+    end
+    else begin
+        U1_shift_reg2[19:0] <= {U1_shift_reg2[18:0], U1_data_rdy_sync};
+        
+        //catching the rising edge of U1_o_rdy
+        U1_data_rdy_tap[5:0] <= {U1_data_rdy_tap[4:0], l_U1_o_rdy};  
+        
+        if(U1_data_rdy_tap_tst)
+            l_U1_o_data[7:0] <= U1_o_data[7:0];
+        else
+            l_U1_o_data[7:0] <= l_U1_o_data[7:0];
+            
+        //catching uart tx block i_clk_in, which is a slow ck @ 1.9MHz/16
+        uart_tx_bit_clk_posedge[1:0] <= {uart_tx_bit_clk_posedge[0], count[3]};
+        
+        // latch in @ posedge of l_U1_o_rdy 
+        // and wait for current uart tx is finished
+        // ignore rising edge if preparing for tx one byte as no buffer at tx
+        if(U1_data_rdy_tap_tst & !U1_shift_tmp & !U1_data_rdy)  begin
+            uart_tx_bit_delay_tap <= 1'h0;
+            U1_data_rdy <= 1'b1;
+        end         
+        else if(U1_shift_tmp)  begin
+            U1_data_rdy <= 1'b0;  //clear the status as only one bit is needed in the tap line
+        end     
+        else begin
+            U1_data_rdy <= U1_data_rdy;
+        end
+        
+        //set U1_data_rdy_sync after tx uart is idle
+        if(uart_rx_rdy | !tsr_is_empty) begin //wait for tx release and tx fifo empty 
+            uart_tx_bit_delay_tap <= 1'h0;
+            U1_data_rdy_sync <= 1'b0;
+        end else
+        begin
+            //wait until the previous tx is done + 2 bit cycles (3 i_clks posedge to uart_tx)
+            if(U1_data_rdy) begin  
+            
+                if((uart_tx_bit_clk_posedge[0] & !uart_tx_bit_clk_posedge[1])) 
+                    uart_tx_bit_delay_tap[3:0] <= {uart_tx_bit_delay_tap[2:0], 1'b1};
+                else
+                    uart_tx_bit_delay_tap <= uart_tx_bit_delay_tap;
+                    
+                if(uart_tx_bit_delay_tap[3])                        
+                    U1_data_rdy_sync <= 1'b1;
+                else
+                    U1_data_rdy_sync <= U1_data_rdy_sync;
+                    
+            end 
+            else begin
+                U1_data_rdy_sync <= 1'b0;
+                uart_tx_bit_delay_tap <= uart_tx_bit_delay_tap;
+            end
+        end
+    end
 end
 
 assign U1_shift_tmp = |U1_shift_reg2 ; //catching 0...000 (20 bit 0s)
@@ -482,8 +480,8 @@ assign U1_shift_tmp = |U1_shift_reg2 ; //catching 0...000 (20 bit 0s)
 //always @ (posedge CLKOP) U1_shift_reg2[19:0] <= {U1_shift_reg2[18:0], U1_data_rdy_sync} ; //38Mhz
 always @ (posedge CLKOS) begin  //1.9MHz
     if(i_rst)
-	    U1_shift_reg1[19:0] <= 5'h00000;
-	else
+        U1_shift_reg1[19:0] <= 5'h00000;
+    else
         U1_shift_reg1[19:0] <= {U1_shift_reg1[18:0], U1_shift_tmp} ; //1.9MHz
 end
 
@@ -497,36 +495,36 @@ reg [3:0] tx_sm_count;
 //count is on PLL same as U1_rdy
 always @ (posedge count[3]) begin  //118KHz bit clk (16 1.9MHz clk) is enough to sample U1_rdy
     if(i_rst) begin
-	    U1_tx_sm <= 1'b0;
-		//db_test_point <= 1'h0;
-	end
-	else begin
-	    if(U1_tx_sm) 
-		begin
-		    if(tsr_is_empty) begin
-			    
-				tx_sm_count [3:0] <= {tx_sm_count [2:0], 1'b0};
-				
-				if(tx_sm_count[3] == 1'b1)
-			        U1_tx_sm <= 1'b0;
-				else
-				    U1_tx_sm <= U1_tx_sm;
-			end
-			else begin
-			    tx_sm_count <= tx_sm_count;
-			end
-		end 
-		else if(U1_rdy) 
-		begin
-		    //db_test_point <= 1'h0;		
-		    tx_sm_count [3:0] <= 1'h1;
-	        U1_tx_sm <= 1'b1;
-		end
-		else begin
-		    tx_sm_count <= tx_sm_count;
-			U1_tx_sm <= U1_tx_sm;
-		end
-	end
+        U1_tx_sm <= 1'b0;
+        //db_test_point <= 1'h0;
+    end
+    else begin
+        if(U1_tx_sm) 
+        begin
+            if(tsr_is_empty) begin
+                
+                tx_sm_count [3:0] <= {tx_sm_count [2:0], 1'b0};
+                
+                if(tx_sm_count[3] == 1'b1)
+                    U1_tx_sm <= 1'b0;
+                else
+                    U1_tx_sm <= U1_tx_sm;
+            end
+            else begin
+                tx_sm_count <= tx_sm_count;
+            end
+        end 
+        else if(U1_rdy) 
+        begin
+            //db_test_point <= 1'h0;        
+            tx_sm_count [3:0] <= 1'h1;
+            U1_tx_sm <= 1'b1;
+        end
+        else begin
+            tx_sm_count <= tx_sm_count;
+            U1_tx_sm <= U1_tx_sm;
+        end
+    end
 end
 
 assign U1_txdata_hold = U1_tx_sm;
@@ -540,8 +538,8 @@ assign o_uart_data_byte [7:0] = (U1_txdata_hold)? o_U1_2_UART_data[7:0] : uart_r
 
 //determine the input -- from U1 or loopback from UART RX
 assign  i_start_tx = U1_data_ready | uart_rx_data_rdy;
-assign	i_tx_data[7:0] = o_uart_data_byte[7:0];
-//assign	i_tx_data[7:0] = uart_rx_data[7:0];
+assign  i_tx_data[7:0] = o_uart_data_byte[7:0];
+//assign    i_tx_data[7:0] = uart_rx_data[7:0];
 //assign  i_start_tx = uart_rx_data_rdy;
 
 // UART TX instantiation
@@ -625,9 +623,9 @@ wire db_tsr_is_empty_negedge;
 always @ (posedge CLKOS)
 begin
     if(i_rst)
-	    db_tsr_is_empty_edge <= 2'b00;
-	else
-	    db_tsr_is_empty_edge[1:0] <= {db_tsr_is_empty_edge[0], db_tsr_is_empty};
+        db_tsr_is_empty_edge <= 2'b00;
+    else
+        db_tsr_is_empty_edge[1:0] <= {db_tsr_is_empty_edge[0], db_tsr_is_empty};
 end
 assign db_tsr_is_empty_posedge = db_tsr_is_empty_edge[0] & ~db_tsr_is_empty_edge[1];
 assign db_tsr_is_empty_negedge = db_tsr_is_empty_edge[1] & ~db_tsr_is_empty_edge[0];
@@ -651,68 +649,68 @@ wire [1:0] db_uart_tx_bit_clk_posedge = uart_tx_bit_clk_posedge[1:0];
 //consume more pwr to catch transitions of logic
 always @ (posedge CLKOP) begin  //sample at 38MHz high speek clk
     if(i_rst) begin
-	    debug_test  <= 5'b00000;
-		debug_test1 <= 5'b00000;
-		debug_test2 <= 5'b00000;
-		debug_test3 <= 5'b00000;
+        debug_test  <= 5'b00000;
+        debug_test1 <= 5'b00000;
+        debug_test2 <= 5'b00000;
+        debug_test3 <= 5'b00000;
     end else 
-	    
-	    // test0
-	    // output from DUT
-		if(db_U1_o_rdy)              //check this pulse ever goes high 
-		debug_test[0] <= 1'b1; 
-		debug_test[1] <= db_U1_o_rdy;//check it goes low at the end
-	    if(db_U1_rdy)
-	    debug_test[2] <= 1'b1;	       //check DUT module generate a pulse, should be high
-		debug_test[3] <= db_U1_rdy; //strobe, check if go low
-		debug_test[4] <= db_U1_txdata_hold; //mux for selecting data src to uart tx
-		// test1
-		// output from DUT
-		
-//		if(db_tsr_is_empty_posedge)
-//		debug_test1[0] <= 1'b1;
-//		if(db_tsr_is_empty_negedge)
-//		debug_test1[1] <= 1'b1;
-		
-		debug_test1[0] <= db_tsr_is_empty; //check if it stay high at the end
-		debug_test1[1] <= db_U1_tx_sm;
-		debug_test1[2] <= db_count[2] & ~db_count[3];
-		
-		if(db_tx_sm_count[3] & db_tx_sm_count[2]) //3:0 4'b11xx
-		debug_test1[3] <= 1'b1;
-		if(db_tx_sm_count[0] & ~db_tx_sm_count[3]) //3:0 4'b0xx1
-		debug_test1[4] <= 1'b1;
-	    
-		// test2
-		// output from UART RX
-//		debug_test2[0] <= db_test_point[0];
-//		debug_test2[1] <= db_test_point[1];
-//		debug_test2[2] <= db_test_point[2];
-//		debug_test2[3] <= db_test_point[3];
-//		debug_test2[4] <= db_tsr_is_empty & db_U1_tx_sm;
+        
+        // test0
+        // output from DUT
+        if(db_U1_o_rdy)              //check this pulse ever goes high 
+        debug_test[0] <= 1'b1; 
+        debug_test[1] <= db_U1_o_rdy;//check it goes low at the end
+        if(db_U1_rdy)
+        debug_test[2] <= 1'b1;         //check DUT module generate a pulse, should be high
+        debug_test[3] <= db_U1_rdy; //strobe, check if go low
+        debug_test[4] <= db_U1_txdata_hold; //mux for selecting data src to uart tx
+        // test1
+        // output from DUT
+        
+//      if(db_tsr_is_empty_posedge)
+//      debug_test1[0] <= 1'b1;
+//      if(db_tsr_is_empty_negedge)
+//      debug_test1[1] <= 1'b1;
+        
+        debug_test1[0] <= db_tsr_is_empty; //check if it stay high at the end
+        debug_test1[1] <= db_U1_tx_sm;
+        debug_test1[2] <= db_count[2] & ~db_count[3];
+        
+        if(db_tx_sm_count[3] & db_tx_sm_count[2]) //3:0 4'b11xx
+        debug_test1[3] <= 1'b1;
+        if(db_tx_sm_count[0] & ~db_tx_sm_count[3]) //3:0 4'b0xx1
+        debug_test1[4] <= 1'b1;
+        
+        // test2
+        // output from UART RX
+//      debug_test2[0] <= db_test_point[0];
+//      debug_test2[1] <= db_test_point[1];
+//      debug_test2[2] <= db_test_point[2];
+//      debug_test2[3] <= db_test_point[3];
+//      debug_test2[4] <= db_tsr_is_empty & db_U1_tx_sm;
 
 
-	    if(db_uart_rx_rdy)
-		debug_test2[0] <= 1'b1;
-		if(db_uart_rx_data_rdy)
-		debug_test2[1] <= 1'b1;
-		if(U1_valid_num_wire)
-		debug_test2[2] <= 1'b1;
-		if(db_U1_input_count0)
-		debug_test2[3] <= 1'b1;
-		if(db_U1_start)
-		debug_test2[4] <= 1'b1;
-		
-		//test3
-		//output from UART RX
+        if(db_uart_rx_rdy)
+        debug_test2[0] <= 1'b1;
+        if(db_uart_rx_data_rdy)
+        debug_test2[1] <= 1'b1;
+        if(U1_valid_num_wire)
+        debug_test2[2] <= 1'b1;
+        if(db_U1_input_count0)
+        debug_test2[3] <= 1'b1;
+        if(db_U1_start)
+        debug_test2[4] <= 1'b1;
+        
+        //test3
+        //output from UART RX
         if(db_input_U1_start)
-		debug_test3[0] <= 1'b1;
-		//output to UART TX
-		debug_test3[1] <= db_count[3] & ~db_count[2];
-		debug_test3[2] <= db_count[2] & ~db_count[3];
-		if(db_tx_sm_count[1] & ~db_tx_sm_count[3]) //3:0 4'b0x1x
-		debug_test3[3] <= 1'b1;
-		debug_test3[4] <= |db_tx_sm_count;  //should go to 4'b1111		
+        debug_test3[0] <= 1'b1;
+        //output to UART TX
+        debug_test3[1] <= db_count[3] & ~db_count[2];
+        debug_test3[2] <= db_count[2] & ~db_count[3];
+        if(db_tx_sm_count[1] & ~db_tx_sm_count[3]) //3:0 4'b0x1x
+        debug_test3[3] <= 1'b1;
+        debug_test3[4] <= |db_tx_sm_count;  //should go to 4'b1111      
 end
 
 
@@ -734,42 +732,42 @@ wire db_U1_substrate = U1_substrate;
 
 always @ (posedge count[3]) begin  //sample at 118KHz low speek clk
     if(i_rst) begin
-	    debug_test  <= 5'b00000;
-		debug_test1 <= 5'b00000;
-		debug_test2 <= 5'b00000;
-		debug_test3 <= 5'b00000;
+        debug_test  <= 5'b00000;
+        debug_test1 <= 5'b00000;
+        debug_test2 <= 5'b00000;
+        debug_test3 <= 5'b00000;
     end else 
-	begin
-	
-	    // test0
-	    // output from DUT
-		debug_test[0] <= db_U1_shift_tmp;//check it goes low at the end
-		debug_test[1] <= db_U1_rdy; //strobe, check if go low
-		debug_test[2] <= db_U1_txdata_hold; //mux for selecting data src to uart tx
-//		if(db_tsr_is_empty_posedge)
-//		debug_test[3] <= 1'b1;
-//		if(db_tsr_is_empty_negedge)
-//		debug_test[4] <= 1'b1;
-		
-		debug_test1[0] <= db_tsr_is_empty; //check if it stay high at the end
-		debug_test1[1] <= db_U1_tx_sm;
-		debug_test1[2] <= db_count[2] & ~db_count[3];
-	    
-		// test2
-		// output from UART RX
-//		debug_test2[0] <= db_test_point[0];
-//		debug_test2[1] <= db_test_point[1];
-//		debug_test2[2] <= db_test_point[2];
-//		debug_test2[3] <= db_test_point[3];
-//		debug_test2[4] <= db_tsr_is_empty & db_U1_tx_sm;
+    begin
+    
+        // test0
+        // output from DUT
+        debug_test[0] <= db_U1_shift_tmp;//check it goes low at the end
+        debug_test[1] <= db_U1_rdy; //strobe, check if go low
+        debug_test[2] <= db_U1_txdata_hold; //mux for selecting data src to uart tx
+//      if(db_tsr_is_empty_posedge)
+//      debug_test[3] <= 1'b1;
+//      if(db_tsr_is_empty_negedge)
+//      debug_test[4] <= 1'b1;
+        
+        debug_test1[0] <= db_tsr_is_empty; //check if it stay high at the end
+        debug_test1[1] <= db_U1_tx_sm;
+        debug_test1[2] <= db_count[2] & ~db_count[3];
+        
+        // test2
+        // output from UART RX
+//      debug_test2[0] <= db_test_point[0];
+//      debug_test2[1] <= db_test_point[1];
+//      debug_test2[2] <= db_test_point[2];
+//      debug_test2[3] <= db_test_point[3];
+//      debug_test2[4] <= db_tsr_is_empty & db_U1_tx_sm;
 
-		
-		//test3
-		//output from UART RX
-		debug_test3[1] <= db_count[3] & ~db_count[2];
-		debug_test3[2] <= db_count[2] & ~db_count[3];
-		debug_test3[4] <= |db_tx_sm_count;  //should go to 4'b1111
-		
+        
+        //test3
+        //output from UART RX
+        debug_test3[1] <= db_count[3] & ~db_count[2];
+        debug_test3[2] <= db_count[2] & ~db_count[3];
+        debug_test3[4] <= |db_tx_sm_count;  //should go to 4'b1111
+        
     end
 end
 */
@@ -810,13 +808,13 @@ wire [7:0] debug_wire;
 assign debug_wire[7:0] = 
                          debug_is_CR?  {1'b0,1'b0, 1'b0, debug_test[4:0]}:  
                          debug_is_DEL? {1'b0,1'b0, 1'b0, debug_test1[4:0]}:
-						 debug_is_BS?  {1'b0,1'b0, 1'b0, debug_test2[4:0]}: 
-						 debug_is_TAB? {1'b0,1'b0, 1'b0, debug_test3[4:0]}: 
-//						 debug_is_91?  {1'b0,1'b0, 1'b0, debug_test4[4:0]}: // '['
-//						 debug_is_93?  {1'b0,1'b0, 1'b0, debug_test5[4:0]}: // ']'
-						 U1_debug_led[7:0];
+                         debug_is_BS?  {1'b0,1'b0, 1'b0, debug_test2[4:0]}: 
+                         debug_is_TAB? {1'b0,1'b0, 1'b0, debug_test3[4:0]}: 
+//                       debug_is_91?  {1'b0,1'b0, 1'b0, debug_test4[4:0]}: // '['
+//                       debug_is_93?  {1'b0,1'b0, 1'b0, debug_test5[4:0]}: // ']'
+                         U1_debug_led[7:0];
 //                         uart_rx_data[7:0];
-						 
+                         
  assign led[0] = debug_wire[0];                      
  assign led[1] = debug_wire[1];                      
  assign led[2] = debug_wire[2];                      
