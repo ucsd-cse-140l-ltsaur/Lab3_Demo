@@ -248,56 +248,64 @@ assign  U1_valid_num_wire = (&U1_num_test);
 // logci is running at clk_in domain, uart_rx_data_rdy is running at 
 // CLKOS 1.9MHz from PLL.  resync this signal first
 reg [7:0] l_uart_rx_data_rdy_tap;
+
+wire uart_rx_data_rdy_sync_posedge = l_uart_rx_data_rdy_tap[0] & l_uart_rx_data_rdy_tap [1] & 
+                                    ~l_uart_rx_data_rdy_tap[6] & ~l_uart_rx_data_rdy_tap[7];
+
 always @ (posedge clk_in) 
 begin
-    if(i_rst)
-	    l_uart_rx_data_rdy_tap[7:0] <= 2'h00;
-	else begin
-	    l_uart_rx_data_rdy_tap[7:0] <= {l_uart_rx_data_rdy_tap[6:0], uart_rx_data_rdy};
-	end
-end
-wire uart_rx_data_rdy_sync = l_uart_rx_data_rdy_tap[0] & l_uart_rx_data_rdy_tap [1] & 
-                             ~l_uart_rx_data_rdy_tap[6] & ~l_uart_rx_data_rdy_tap[7];
-always @ (posedge uart_rx_data_rdy_sync or posedge i_rst)
-begin
     if(i_rst) begin
+	    l_uart_rx_data_rdy_tap[7:0] <= 2'h00;
         U1_input_count <= 2'b00;
         U1_start <= 1'b0;
 		ctrl_from_UartRx <= 1'b0;
         r1 <= 2'h00;
         r2 <= 2'h00;
-    end else 
-	begin 
-	    if ( U1_input_count >= 2'b10) begin
-	        if ( U1_pluse_wire) begin // 3th letter is '+' or '-'
-				U1_substrate <= 0;
-	            U1_start <= 1'b1;
-		    end else 
-			if ( U1_substrate_wire) begin
-			    U1_substrate <= 1'b1;
-		        U1_start <= 1'b1;
-		    end 
-			else begin
-			    U1_substrate <= 0;
-			end		
-            ctrl_from_UartRx <= 0;
-	        U1_input_count <= 2'b00;
-	    end else 
-		begin
-	        if(U1_valid_num_wire) begin
-	            if ( U1_input_count == 2'b00)
-	                r1[7:0] <= uart_rx_data[7:0];
-	            else if ( U1_input_count == 2'b01)
-	                r2[7:0] <= uart_rx_data[7:0];					 	
-		        U1_input_count <= U1_input_count + 1;
-				ctrl_from_UartRx <= 0;
-		    end 
-			else begin 
-			    ctrl_from_UartRx_char[7:0] <= uart_rx_data[7:0];
-				ctrl_from_UartRx <= 1;
-		        U1_input_count <= 2'b00;
-			end
-	        U1_start <= 0;
+		U1_substrate <= 0;
+    end
+	else begin
+	    l_uart_rx_data_rdy_tap[7:0] <= {l_uart_rx_data_rdy_tap[6:0], uart_rx_data_rdy};
+
+        if (uart_rx_data_rdy_sync_posedge) begin 
+	        if ( U1_input_count >= 2'b10) begin
+	            if ( U1_pluse_wire) begin // 3th letter is '+' or '-'
+				    U1_substrate <= 0;
+	                U1_start <= 1'b1;
+		        end else 
+			    if ( U1_substrate_wire) begin
+			        U1_substrate <= 1'b1;
+		            U1_start <= 1'b1;
+		        end 
+			    else begin
+			        U1_substrate <= 0;
+			    end		
+                ctrl_from_UartRx <= 0;
+	            U1_input_count <= 2'b00;
+	        end else 
+		    begin
+	            if(U1_valid_num_wire) begin
+	                if ( U1_input_count == 2'b00)
+	                    r1[7:0] <= uart_rx_data[7:0];
+	                else if ( U1_input_count == 2'b01)
+	                    r2[7:0] <= uart_rx_data[7:0];					 	
+		            U1_input_count <= U1_input_count + 1;
+				    ctrl_from_UartRx <= 0;
+		        end 
+			    else begin 
+			        ctrl_from_UartRx_char[7:0] <= uart_rx_data[7:0];
+				    ctrl_from_UartRx <= 1;
+		            U1_input_count <= 2'b00;
+			    end
+	            U1_start <= 0;
+		    end
+	    end
+		else begin
+            U1_input_count <= U1_input_count;
+            U1_start <= U1_start;
+		    ctrl_from_UartRx <= ctrl_from_UartRx;
+            r1 <= r1;
+            r2 <= r2;
+		    U1_substrate <= U1_substrate;
 		end
     end
 end
@@ -436,12 +444,10 @@ begin
 		    U1_data_rdy <= 1'b1;
         end			
 		else if(U1_shift_tmp)  begin
-		    uart_tx_bit_delay_tap <= uart_tx_bit_delay_tap;
 		    U1_data_rdy <= 1'b0;  //clear the status as only one bit is needed in the tap line
 		end		
 		else begin
 		    U1_data_rdy <= U1_data_rdy;
-			uart_tx_bit_delay_tap <= uart_tx_bit_delay_tap;
 		end
 	    
 		//set U1_data_rdy_sync after tx uart is idle
