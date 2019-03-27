@@ -142,12 +142,18 @@ assign l_minute_pulse_wire = l_minute_pulse;
 
 wire [5:0] minute_cntr_wire;
 assign minute_cntr_wire[5:0] = {l_minute_reg[5:0]};
-wire test_59_min = {minute_cntr_wire[5] ^ 1'b0, minute_cntr_wire[4] ^ 1'b0, minute_cntr_wire[3] ^ 1'b0,
-                    minute_cntr_wire[2] ^ 1'b1, minute_cntr_wire[1] ^ 1'b0, minute_cntr_wire[0] ^ 1'b0}; //0x3B
-wire test_29_min = {minute_cntr_wire[5] ^ 1'b1, minute_cntr_wire[4] ^ 1'b0, minute_cntr_wire[3] ^ 1'b0,
-                    minute_cntr_wire[2] ^ 1'b0, minute_cntr_wire[1] ^ 1'b1, minute_cntr_wire[0] ^ 1'b0}; //0x1D
+
+wire [5:0] test_59_min;
+assign test_59_min = {minute_cntr_wire[5] ^ 1'b0, minute_cntr_wire[4] ^ 1'b0, minute_cntr_wire[3] ^ 1'b0,
+                      minute_cntr_wire[2] ^ 1'b1, minute_cntr_wire[1] ^ 1'b0, minute_cntr_wire[0] ^ 1'b0}; //0x3B
+					
+wire [5:0] test_29_min;
+assign test_29_min = {minute_cntr_wire[5] ^ 1'b1, minute_cntr_wire[4] ^ 1'b0, minute_cntr_wire[3] ^ 1'b0,
+                      minute_cntr_wire[2] ^ 1'b0, minute_cntr_wire[1] ^ 1'b1, minute_cntr_wire[0] ^ 1'b0}; //0x1D
+					  
 wire is_59_min = &test_59_min;
 wire is_29_min = &test_29_min;
+
 reg l_hr_pulse_reg;
 reg [3:0] min_h_digit;
 reg [3:0] min_l_digit;
@@ -171,7 +177,7 @@ always@(posedge i_sec_in or posedge i_rst) begin
                 l_hr_pulse_reg <= 1'b1;
             end
             else begin
-                l_minute_reg[5:0] <= l_minute_reg[5:0] + 1'b1;
+                l_minute_reg <= l_minute_reg + 1;
 				if(is_29_min)
                     l_hr_pulse_reg <= 1'b0;
 				else 
@@ -187,7 +193,8 @@ always@(posedge i_sec_in or posedge i_rst) begin
 		    else 
  			    l_hr_pulse_reg <= l_hr_pulse_reg;	
 		
-		
+		    l_minute_reg <= l_minute_reg;
+			
 		    //caculate minute before latch in
 	        if(l_minute_reg > 49) begin
 			    min_l_digit <= l_minute_reg - 50;
@@ -213,7 +220,7 @@ always@(posedge i_sec_in or posedge i_rst) begin
 			    min_l_digit <= l_minute_reg;
 		        min_h_digit <= 0;
             end			
-		    l_minute_reg <= l_minute_reg;
+
 		end
 	end
 end	
@@ -224,8 +231,9 @@ assign l_hr_pulse_wire = l_hr_pulse_reg;
 wire [4:0] l_hr_wire;
 assign l_hr_wire[4:0] = {l_hr_reg[4:0]};
 
-wire test_23_hr = {l_hr_wire[4] ^ 1'b0, l_hr_wire[3] ^ 1'b1,
-                   l_hr_wire[2] ^ 1'b0, l_hr_wire[1] ^ 1'b0, l_hr_wire[0] ^ 1'b0}; //0x17
+wire [4:0] test_23_hr;
+assign test_23_hr = {l_hr_wire[4] ^ 1'b0, l_hr_wire[3] ^ 1'b1,
+                     l_hr_wire[2] ^ 1'b0, l_hr_wire[1] ^ 1'b0, l_hr_wire[0] ^ 1'b0}; //0x17
 wire is_23_hr = &test_23_hr;
 
 reg [3:0] hr_h_digit;
@@ -382,6 +390,8 @@ always @ (posedge l_bus_clk_in ) begin
 		    if(l_sec_tap_negedge) begin
 		        l_state <= 1;
 		    end
+		else
+		    l_state <= l_state;
 		
 		if(|l_state) begin		
 	        if (l_buf_indx1_neq_out) begin
@@ -537,6 +547,13 @@ assign debug_o_data_start = l_o_data_start;
 wire [7:0] debug_buf_hold;
 assign debug_buf_hold[7:0] = l_buf_hold_wire[7:0];
 
+wire [5:0] debug_l_minute_reg;
+assign debug_l_minute_reg[5:0] = l_minute_reg[5:0];
+wire [4:0] debug_l_hr_reg;
+assign debug_l_hr_reg[4:0] = l_hr_reg[4:0];
+wire [5:0] debug_l_sec_reg;
+assign debug_l_sec_reg = l_sec_reg[5:0];
+
 always @ (posedge i_clk_in)
 begin
 
@@ -550,16 +567,16 @@ begin
 	            debug_reg[7:0] <= 0; //local results		   
 	        end else
 		    if(debug_is_OR) begin
-	            debug_reg[7:0] <= {1'b0,1'b0,1'b0,debug_o_data_start,1'h0}; //local results		   
+	            debug_reg[7:0] <= {1'b0,1'b0,1'b0, l_minute_pulse_wire, debug_l_sec_reg[3:0]}; //local results		   
 	        end else
 		    if(debug_is_NOT) begin
-	            debug_reg[7:0] <= {1'b0,1'b0,1'b0, debug_i_buf_rdy, 1'h0}; //local results		   
+	            debug_reg[7:0] <= {1'b0,1'b0,1'b0, l_hr_pulse_wire, debug_l_minute_reg[3:0]}; //local results		   
 	        end  else 
 		    if(debug_is_LB) begin //{
-	            debug_reg[7:0] <= {debug_buf_hold[7:0]};
+	            debug_reg[7:0] <= {1'b0,1'b0,l_hr_pulse_wire, debug_l_hr_reg[3:0]};
             end else 		
 		    if(debug_is_RB) begin //}
-	            debug_reg[7:0] <= {debug_buf_hold[7:0]};
+	            debug_reg[7:0] <= {1'b0,1'b0, is_59_min, debug_l_minute_reg[3:0]};
             end 
 			else 
 		    begin
@@ -587,5 +604,3 @@ end
 assign o_debug_led[7:0] = debug_reg[7:0];
 
 endmodule
-         
-
