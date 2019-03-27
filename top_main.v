@@ -247,10 +247,9 @@ assign  U1_valid_num_wire = (&U1_num_test);
 // use uart_rx_rdy to make sure UART Rx data is latched in
 // logci is running at clk_in domain, uart_rx_data_rdy is running at 
 // CLKOS 1.9MHz from PLL.  resync this signal first
-reg [7:0] l_uart_rx_data_rdy_tap;
+reg [1:0] l_uart_rx_data_rdy_tap;
 
-wire uart_rx_data_rdy_sync_posedge = l_uart_rx_data_rdy_tap[0] & l_uart_rx_data_rdy_tap [1] & 
-                                    ~l_uart_rx_data_rdy_tap[6] & ~l_uart_rx_data_rdy_tap[7];
+	wire uart_rx_data_rdy_sync_posedge = l_uart_rx_data_rdy_tap[0] &  ~l_uart_rx_data_rdy_tap[1];
 
 always @ (posedge clk_in) 
 begin
@@ -264,7 +263,7 @@ begin
 		U1_substrate <= 0;
     end
 	else begin
-	    l_uart_rx_data_rdy_tap[7:0] <= {l_uart_rx_data_rdy_tap[6:0], uart_rx_data_rdy};
+	l_uart_rx_data_rdy_tap[1:0] <= {l_uart_rx_data_rdy_tap[0], uart_rx_data_rdy};
 
         if (uart_rx_data_rdy_sync_posedge) begin 
 	        if ( U1_input_count >= 2'b10) begin
