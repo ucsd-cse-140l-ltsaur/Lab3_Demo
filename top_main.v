@@ -101,17 +101,28 @@ ice_pll ice_pll_inst(
      .RESET        ( 1'b1  )
      );
 
-reg [5:0] clk_count ; 
-reg CLKOS ;
+reg [3:0] clk_count ; 
+reg CLKOS_reg ;
+assign CLKOS = CLKOS_reg;
 
+// generate bit clk ==> look like needs to be 20 cycles or 
+// need to be 50% duty cycle
+// 20.62 = 38M / (115200 x16)  err = 3%
+// 10.31 = 38M / (230400 x16)  err = 3%
+//  5.15 = 38M / (460800 x16)  err = 3%
 always @ (posedge CLKOP) begin
-    if ( clk_count == 9 ) clk_count <= 0 ;
-    else clk_count <= clk_count + 1 ;          //0 - 9
+    
+    if(i_rst) begin
+	    clk_count <= 0;
+		CLKOS_reg <= 0;
+	end
+	else begin
+        if ( clk_count == 9 ) clk_count <= 0 ;
+        else clk_count <= clk_count + 1 ;          //0 - 9
+        
+		if ( clk_count == 9 ) CLKOS_reg <= ~CLKOS_reg ;    //1.9Mhz
     end
-
-always @ (posedge CLKOP) begin
-    if ( clk_count == 9 ) CLKOS <= ~CLKOS ;    //1.9Mhz
-    end
+end
 
 // UART RX instantiation
 uart_rx_fsm uut1 (                   
